@@ -1,0 +1,2 @@
+[28/Nov/2022 12:27:29] "GET /todos/ HTTP/1.1" 200 3515
+[28/Nov/2022 12:27:29] "GET /static/css/style.css HTTP/1.1" 304 0
