@@ -78,10 +78,10 @@ stages:
             cat trivy-vulnerabilities.txt || echo "trivy-vulnerabilities.txt not found"
           displayName: 'Run trivy.sh and show output'
 
-        - publish: project/django/trivy-vulnerabilities.txt
+        - publish: trivy-vulnerabilities.txt
           artifact: trivy-vulnerabilities
           displayName: 'Publish Trivy Vulnerabilities'
 
-        - publish: project/django/sbom-result.txt
+        - publish: sbom-result.txt
           artifact: sbom-result
           displayName: 'Publish SBOM Result'
