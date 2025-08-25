@@ -40,30 +40,26 @@ stages:
       steps:
         - script: |
             ls -R
-            cd django
             bash ./python-install.sh
           displayName: 'Run python-install.sh'
 
         - script: |
-            cd django
             pwsh -File ./get-details.ps1
           displayName: 'Run get-details.ps1'
 
         - script: |
-            cd django
             pwsh -File ./merge-details.ps1
           displayName: 'Run merge-details.ps1'
 
         - script: |
-            cd django
             bash ./trivy.sh
           displayName: 'Run trivy.sh'
 
         # Publish results from inside the artifact directory
-        - publish: django/trivy-vulnerabilities.txt
+        - publish: trivy-vulnerabilities.txt
           artifact: trivy-vulnerabilities
           displayName: 'Publish Trivy Vulnerabilities'
 
-        - publish: django/sbom-result.txt
+        - publish: sbom-result.txt
           artifact: sbom-result
           displayName: 'Publish SBOM Result'
