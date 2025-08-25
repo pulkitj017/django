@@ -38,28 +38,50 @@ stages:
     - job: sbom_job
       displayName: SBOM Job
       steps:
+        - download: current
+          artifact: project
+          displayName: 'Download Build Artifact'
+
         - script: |
-            ls -R
+            cd project/django
             bash ./python-install.sh
           displayName: 'Run python-install.sh'
 
         - script: |
+            cd project/django
             pwsh -File ./get-details.ps1
-          displayName: 'Run get-details.ps1'
+            echo "After get-details.ps1:"
+            ls -l
+            echo "Contents of sbom-dependency.txt (if exists):"
+            cat sbom-dependency.txt || echo "sbom-dependency.txt not found"
+            echo "Contents of sbom-outdated-dependencies.txt (if exists):"
+            cat sbom-outdated-dependencies.txt || echo "sbom-outdated-dependencies.txt not found"
+            echo "Contents of sbom-licenses.txt (if exists):"
+            cat sbom-licenses.txt || echo "sbom-licenses.txt not found"
+          displayName: 'Run get-details.ps1 and show output'
 
         - script: |
+            cd project/django
             pwsh -File ./merge-details.ps1
-          displayName: 'Run merge-details.ps1'
+            echo "After merge-details.ps1:"
+            ls -l
+            echo "Contents of merged file (if exists):"
+            cat sbom-result.txt || echo "sbom-result.txt not found"
+          displayName: 'Run merge-details.ps1 and show output'
 
         - script: |
+            cd project/django
             bash ./trivy.sh
-          displayName: 'Run trivy.sh'
+            echo "After trivy.sh:"
+            ls -l
+            echo "Contents of trivy-vulnerabilities.txt:"
+            cat trivy-vulnerabilities.txt || echo "trivy-vulnerabilities.txt not found"
+          displayName: 'Run trivy.sh and show output'
 
-        # Publish results from inside the artifact directory
-        - publish: trivy-vulnerabilities.txt
+        - publish: project/django/trivy-vulnerabilities.txt
           artifact: trivy-vulnerabilities
           displayName: 'Publish Trivy Vulnerabilities'
 
-        - publish: sbom-result.txt
+        - publish: project/django/sbom-result.txt
           artifact: sbom-result
           displayName: 'Publish SBOM Result'
