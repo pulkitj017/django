@@ -1,0 +1,69 @@
+trigger:
+- master
+
+pool:
+  name: 'sbom-vm-pool'
+  
+variables:
+  pythonVersion: '3.x'
+
+stages:
+- stage: build
+  displayName: Build
+  jobs:
+    - job: build_job
+      displayName: Build Job
+      steps:
+        - checkout: none
+        - script: |
+            rm -rf django
+            git clone --branch main https://github.com/pulkitj017/django.git
+          displayName: 'Checkout Code'
+
+        - script: |
+            sudo apt update && sudo apt install -y python3 python3-pip
+            cd django
+            ls
+            pip3 install -r requirements.txt
+          displayName: 'Install Dependencies'
+
+        - publish: django
+          artifact: project
+          displayName: 'Publish Build Artifact'
+
+- stage: sbom_scan
+  displayName: SBOM Scan
+  dependsOn: build
+  jobs:
+    - job: sbom_job
+      displayName: SBOM Job
+      steps:
+        - script: |
+            ls -R
+            cd django
+            bash ./python-install.sh
+          displayName: 'Run python-install.sh'
+
+        - script: |
+            cd django
+            pwsh -File ./get-details.ps1
+          displayName: 'Run get-details.ps1'
+
+        - script: |
+            cd django
+            pwsh -File ./merge-details.ps1
+          displayName: 'Run merge-details.ps1'
+
+        - script: |
+            cd django
+            bash ./trivy.sh
+          displayName: 'Run trivy.sh'
+
+        # Publish results from inside the artifact directory
+        - publish: django/trivy-vulnerabilities.txt
+          artifact: trivy-vulnerabilities
+          displayName: 'Publish Trivy Vulnerabilities'
+
+        - publish: django/sbom-result.txt
+          artifact: sbom-result
+          displayName: 'Publish SBOM Result'
