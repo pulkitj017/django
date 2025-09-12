@@ -1,0 +1,58 @@
+name: SBOM Scan
+ 
+on:
+  workflow_dispatch: 
+  push:
+    branches:
+      - main
+ 
+jobs:
+  sbom_scan:
+    runs-on: ubuntu-22.04
+ 
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+ 
+     
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git curl gawk wget libicu70
+ 
+ 
+      - name: Clone target repo
+        run: |
+          mkdir proj
+          cd proj
+          repo_url="https://github.com/iamGauravMehta/django.git"
+          git clone "$repo_url"
+          repo_name=$(basename -s .git "$repo_url")
+          echo "REPO_NAME=$repo_name" >> $GITHUB_ENV
+ 
+     
+      - name: Download SBOM script
+        run: |
+          cd proj/${{ env.REPO_NAME }}
+          curl --header "PRIVATE-TOKEN: ${{ secrets.GITLAB_TOKEN }}" \
+          "https://git.thepsi.com/api/v4/projects/Reusable-Components%2Fsbom-and-vulnerability-scanner/reposit… \
+          -o sbom-vuln-python.sh
+          chmod +x sbom-vuln-python.sh
+ 
+     
+      - name: Run SBOM Scan
+        run: |
+          cd proj/${{ env.REPO_NAME }}
+          ./sbom-vuln-python.sh
+          mv trivy-vulnerabilities.txt ../../proj/
+          mv sbom-result.txt ../../proj/
+ 
+     
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-results
+          path: |
+            proj/trivy-vulnerabilities.txt
+            proj/sbom-result.txt
+          retention-days: 1
