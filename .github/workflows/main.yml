@@ -1,58 +1,48 @@
 name: SBOM Scan
- 
+
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
   push:
     branches:
       - main
- 
+
 jobs:
   sbom_scan:
-    runs-on: ubuntu-22.04
- 
+    runs-on: self-hosted  # since you mentioned you have a self-hosted runner
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
- 
-     
-      - name: Install dependencies
+
+      - name: Run python-install.sh
         run: |
-          sudo apt-get update
-          sudo apt-get install -y git curl gawk wget libicu70
- 
- 
-      - name: Clone target repo
+          chmod +x ./python-install.sh
+          ./python-install.sh
+
+      - name: Install PowerShell
         run: |
-          mkdir proj
-          cd proj
-          repo_url="https://github.com/iamGauravMehta/django.git"
-          git clone "$repo_url"
-          repo_name=$(basename -s .git "$repo_url")
-          echo "REPO_NAME=$repo_name" >> $GITHUB_ENV
- 
-     
-      - name: Download SBOM script
+          sudo apt-get update && sudo apt-get install -y wget
+          wget https://github.com/PowerShell/PowerShell/releases/download/v7.5.0/powershell_7.5.0-1.deb_amd64.deb
+          sudo dpkg -i powershell_7.5.0-1.deb_amd64.deb || true
+          sudo apt --fix-broken install -y
+          pwsh --version
+          rm -rf powershell_7.5.0-1.deb_amd64.deb
+
+      - name: Run get-details.ps1
+        shell: pwsh
         run: |
-          cd proj/${{ env.REPO_NAME }}
-          curl --header "PRIVATE-TOKEN: ${{ secrets.GITLAB_TOKEN }}" \
-          "https://git.thepsi.com/api/v4/projects/Reusable-Components%2Fsbom-and-vulnerability-scanner/reposit… \
-          -o sbom-vuln-python.sh
-          chmod +x sbom-vuln-python.sh
- 
-     
-      - name: Run SBOM Scan
+          ./get-details.ps1
+
+      - name: Run merge-details.ps1
+        shell: pwsh
         run: |
-          cd proj/${{ env.REPO_NAME }}
-          ./sbom-vuln-python.sh
-          mv trivy-vulnerabilities.txt ../../proj/
-          mv sbom-result.txt ../../proj/
- 
-     
+          ./merge-details.ps1
+
       - name: Upload results
         uses: actions/upload-artifact@v4
         with:
           name: sbom-results
           path: |
-            proj/trivy-vulnerabilities.txt
-            proj/sbom-result.txt
+            trivy-vulnerabilities.txt
+            sbom-result.txt
           retention-days: 1
