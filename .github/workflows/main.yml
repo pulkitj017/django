@@ -1,12 +1,21 @@
-jobs:                # level 0
-  sbom_scan:         # level 1
-    runs-on: self-hosted   # level 2
-    steps:           # level 2
-      - name: Checkout repository   # level 3
-        uses: actions/checkout@v4   # level 4
+name: SBOM Scan
 
-      - name: Install dependencies (macOS)   # level 3
-        run: |                              # level 4
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  sbom_scan:
+    runs-on: self-hosted   # or "ubuntu-22.04" if you switch to GitHub-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (macOS)
+        run: |
           brew update
           brew install python3 pipx wget
           pipx install virtualenv
