@@ -1,42 +1,36 @@
-name: SBOM Scan
+jobs:                # level 0
+  sbom_scan:         # level 1
+    runs-on: self-hosted   # level 2
+    steps:           # level 2
+      - name: Checkout repository   # level 3
+        uses: actions/checkout@v4   # level 4
 
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
+      - name: Install dependencies (macOS)   # level 3
+        run: |                              # level 4
+          brew update
+          brew install python3 pipx wget
+          pipx install virtualenv
+          python3 -m venv sbom_env
+          source sbom_env/bin/activate
+          pip install --upgrade pip setuptools wheel
 
-jobs:
-  sbom_scan:
-    runs-on: self-hosted  # since you mentioned you have a self-hosted runner
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Install PowerShell (macOS)
+        run: |
+          brew install --cask powershell
+          pwsh --version
 
       - name: Run python-install.sh
         run: |
           chmod +x ./python-install.sh
           ./python-install.sh
 
-      - name: Install PowerShell
-        run: |
-          sudo apt-get update && sudo apt-get install -y wget
-          wget https://github.com/PowerShell/PowerShell/releases/download/v7.5.0/powershell_7.5.0-1.deb_amd64.deb
-          sudo dpkg -i powershell_7.5.0-1.deb_amd64.deb || true
-          sudo apt --fix-broken install -y
-          pwsh --version
-          rm -rf powershell_7.5.0-1.deb_amd64.deb
-
       - name: Run get-details.ps1
         shell: pwsh
-        run: |
-          ./get-details.ps1
+        run: ./get-details.ps1
 
       - name: Run merge-details.ps1
         shell: pwsh
-        run: |
-          ./merge-details.ps1
+        run: ./merge-details.ps1
 
       - name: Upload results
         uses: actions/upload-artifact@v4
