@@ -1,0 +1,41 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.9
+    commands:
+      - echo "Updating system and installing dependencies..."
+      - apt-get update
+      - apt-get install -y python3 python3-pip python3-venv wget curl unzip
+      - python3 -m venv sbom_env
+      - source sbom_env/bin/activate
+      - pip install --upgrade pip setuptools wheel virtualenv
+
+      - echo "Installing PowerShell..."
+      - wget https://github.com/PowerShell/PowerShell/releases/download/v7.5.0/powershell_7.5.0-1.deb_amd64.deb
+      - dpkg -i powershell_7.5.0-1.deb_amd64.deb || true
+      - apt-get --fix-broken install -y
+      - pwsh --version
+      - rm -rf powershell_7.5.0-1.deb_amd64.deb
+
+  build:
+    commands:
+      - echo "Running python-install.sh..."
+      - chmod +x ./python-install.sh
+      - ./python-install.sh
+
+      - echo "Running trivy.sh..."
+      - chmod +x ./trivy.sh
+      - ./trivy.sh
+
+      - echo "Running get-details.ps1..."
+      - pwsh ./get-details.ps1
+
+      - echo "Running merge-details.ps1..."
+      - pwsh ./merge-details.ps1
+
+artifacts:
+  files:
+    - trivy-vulnerabilities.txt
+    - sbom-result.txt
