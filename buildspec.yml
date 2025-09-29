@@ -9,7 +9,7 @@ phases:
       - apt-get update
       - apt-get install -y python3 python3-pip python3-venv wget curl unzip
       - python3 -m venv sbom_env
-      - source sbom_env/bin/activate
+      - . sbom_env/bin/activate
       - pip install --upgrade pip setuptools wheel virtualenv
 
       - echo "Installing PowerShell..."
