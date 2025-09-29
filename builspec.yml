@@ -1,0 +1,65 @@
+version: 0.2
+
+env:
+  variables:
+    JAVA_HOME: "/usr/lib/jvm/java-17-openjdk-amd64"
+  # If you want caching like GitHub Actions gradle cache:
+  cache:
+    paths:
+      - '/root/.gradle/**/*'
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto17
+    commands:
+      - echo "Installing dependencies..."
+      - apt-get update -y
+      - apt-get install -y wget unzip curl jq python3 python3-pip
+      - python3 -m pip install --upgrade pip
+      - pip3 install requests tabulate
+      - java -version
+
+  pre_build:
+    commands:
+      - echo "Setting up Gradle wrapper..."
+      - chmod +x gradlew
+      - ./gradlew --version
+
+  build:
+    commands:
+      - echo "Running Gradle tasks..."
+      - ./gradlew dependencyUpdates --refresh-dependencies -Drevision=release
+      - ./gradlew generateLicenseReport
+
+      - echo "Running helper scripts..."
+      - chmod +x ./get-details-1.sh || true
+      - chmod +x ./trivy.sh || true
+      - bash ./get-details-1.sh || true
+
+      - echo "Installing PowerShell..."
+      - wget https://github.com/PowerShell/PowerShell/releases/download/v7.5.0/powershell_7.5.0-1.deb_amd64.deb
+      - dpkg -i powershell_7.5.0-1.deb_amd64.deb || true
+      - apt-get -f install -y
+      - pwsh --version
+
+      - echo "Running merge-details.ps1..."
+      - pwsh -File ./merge-details.ps1 || true
+
+      - echo "Running Trivy scan..."
+      - bash ./trivy.sh || true
+
+  post_build:
+    commands:
+      - echo "Build phase complete. Listing results..."
+      - ls -l
+      - echo "=== SBOM Result Preview ==="
+      - cat sbom-result.txt || echo "sbom-result.txt not found"
+      - echo "=== Trivy Vulnerabilities Preview ==="
+      - cat trivy-vulnerabilities.txt || echo "trivy-vulnerabilities.txt not found"
+
+artifacts:
+  files:
+    - sbom-result.txt
+    - trivy-vulnerabilities.txt
+  discard-paths: yes
